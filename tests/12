@@ -1,0 +1,155 @@
+import pytest
+from django.urls import reverse
+from quiz.models import Quiz, Category, Question
+
+
+@pytest.mark.django_db
+class TestCategoryAPI:
+    def test_create_and_list_categories(self, client):
+        """Тест создания и получения категорий"""
+
+        url = reverse('create-and-list-category')
+        response = client.post(url, {'title': 'History'}, content_type='application/json')
+        assert response.status_code == 201
+
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json()[0]['title'] == 'History'
+
+    def test_update_and_delete_category(self, client):
+        """Тест обновления и удаления категории"""
+
+        category = Category.objects.create(title='Old')
+        url = reverse('detail-get-update-delete-category', args=[category.id])
+
+        response = client.put(url, {'title': 'New'}, content_type='application/json')
+        assert response.status_code == 200
+        assert response.json()['title'] == 'New'
+
+        response = client.delete(url)
+        assert response.status_code == 200
+        assert Category.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestQuizAPI:
+    def test_create_and_list_quizzes(self, client):
+        """Тест создания и получения квизов"""
+
+        url = reverse('create-and-list-quiz')
+        response = client.post(
+            url,
+            {'title': 'Python', 'description': 'Basics'},
+            content_type='application/json',
+        )
+        assert response.status_code == 201
+
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json()[0]['title'] == 'Python'
+
+    def test_update_and_delete_quiz(self, client):
+        """Тест обновления и удаления квиза"""
+
+        quiz = Quiz.objects.create(title='Old', description='Desc')
+        url = reverse('detail-get-update-delete-quiz', args=[quiz.id])
+
+        response = client.put(url, {'title': 'New', 'description': 'New'}, content_type='application/json')
+        assert response.status_code == 200
+        assert response.json()['title'] == 'New'
+        assert response.json()['description'] == 'New'
+
+        response = client.delete(url)
+        assert response.status_code == 200
+        assert Quiz.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestQuestionAPI:
+    def setup_method(self):
+        self.category = Category.objects.create(title='Math')
+        self.quiz = Quiz.objects.create(title='Math Quiz', description='Test')
+
+    def test_create_and_list_questions(self, client):
+        """Тест создания и получения вопросов"""
+
+        url = reverse('create-and-list-question')
+        response = client.post(
+            url,
+            {
+                'quiz': self.quiz.id,
+                'category': self.category.id,
+                'description': 'desc',
+                'text': '2+2?',
+                'options': ['3', '4'],
+                'correct_answer': 1,
+                'explanation': 'Basic math',
+                'difficulty': 'easy',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 201
+
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.json()[0]['text'] == '2+2?'
+
+    def test_update_and_delete_question(self, client):
+        """Тест обновления и удаления вопроса"""
+
+        question = Question.objects.create(
+            quiz=self.quiz,
+            category=self.category,
+            description='desc',
+            text='2+2?',
+            options=['3', '4'],
+            correct_answer=1,
+            explanation='',
+            difficulty='easy',
+        )
+        url = reverse('detail-get-update-delete-question', args=[question.id])
+
+        response = client.put(
+            url,
+            {
+                'quiz': self.quiz.pk,
+                'category': self.category.pk,
+                'text': '2+3?',
+                'description': 'desc',
+                'options': ['3', '4', '5'],
+                'correct_answer': 2,
+                'explanation': '',
+                'difficulty': 'medium'
+            },
+            content_type='application/json'
+        )
+        assert response.status_code == 200
+        assert response.json()['text'] == '2+3?'
+        assert response.json()['difficulty'] == 'medium'
+
+        response = client.delete(url)
+        assert response.status_code == 200
+        assert Question.objects.count() == 0
+
+    def test_check_answer(self, client):
+        """Тест проверки ответа на вопрос"""
+        
+        question = Question.objects.create(
+            quiz=self.quiz,
+            category=self.category,
+            description='',
+            text='2+2?',
+            options=['3', '4'],
+            correct_answer=1,
+            explanation='',
+            difficulty='easy',
+        )
+        url = reverse('check-answer', args=[question.id])
+
+        response = client.post(url, {'answer': '4'}, content_type='application/json')
+        assert response.status_code == 200
+        assert response.json()['answer_correct'] is True
+
+        response = client.post(url, {'answer': '3'}, content_type='application/json')
+        assert response.status_code == 200
+        assert response.json()['answer_correct'] is False

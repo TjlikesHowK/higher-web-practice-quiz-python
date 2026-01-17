@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from quiz.dao import AbstractQuestionService
 from quiz.models import Question
 from quiz.services.quiz import QuizService
+from quiz.services.utils import update_object
 
 
 class QuestionService(AbstractQuestionService):
@@ -31,11 +32,7 @@ class QuestionService(AbstractQuestionService):
         return Question.objects.create(quiz_id=quiz_id, **data)
 
     def update_question(self, question_id: int, data: dict):
-        question = self.get_question(question_id)
-        for field, value in data.items():
-            setattr(question, field, value)
-        question.save()
-        return question
+        return update_object(Question, question_id, data)
 
     def delete_question(self, question_id: int):
         question = self.get_question(question_id)

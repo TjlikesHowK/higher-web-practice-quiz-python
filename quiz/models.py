@@ -12,8 +12,17 @@ class Category(models.Model):
 
     title = models.CharField(
         max_length=CATEGORY_MAX_LENGTH,
-        verbose_name='Название категории'
+        verbose_name='Название категории',
+        unique=True
     )
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ('title',)
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
 
 
 class Quiz(models.Model):
@@ -21,13 +30,22 @@ class Quiz(models.Model):
 
     title = models.CharField(
         max_length=QUIZ_MAX_LENGTH,
-        verbose_name='Название квиза'
+        verbose_name='Название квиза',
+        unique=True
     )
     description = models.CharField(
         max_length=DESCRIPTION_AND_TEXT_MAX_LENGTH,
         blank=True,
         verbose_name='Описание квиза'
     )
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ('title',)
+        verbose_name = 'Квиз'
+        verbose_name_plural = 'Квизы'
 
 
 class Difficulty(models.TextChoices):
@@ -78,3 +96,11 @@ class Question(models.Model):
         choices=Difficulty.choices,
         verbose_name='Сложность вопроса'
     )
+
+    def __str__(self):
+        return self.text
+
+    class Meta:
+        ordering = ('category', 'difficulty', 'id')
+        verbose_name = 'Вопрос'
+        verbose_name_plural = 'Вопросы'

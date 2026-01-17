@@ -7,21 +7,21 @@ from quiz.models import Category, Question, Quiz
 @pytest.mark.django_db
 class TestCategoryAPI:
     def test_create_and_list_categories(self, client):
-        url = reverse('category-list')
-        categoty = 'Math'
+        url = reverse('create-and-list-category')
+        category_title = 'Math'
         response = client.post(
-            url, {'title': categoty}, content_type='application/json'
+            url, {'title': category_title}, content_type='application/json'
         )
         assert response.status_code == 201
 
         response = client.get(url)
         assert response.status_code == 200
-        assert response.json()[0]['title'] == categoty
+        assert response.json()[0]['title'] == category_title
 
     def test_update_and_delete_category(self, client):
         updated_category = 'Second'
         category = Category.objects.create(title='First')
-        url = reverse('category-detail', args=[category.id])
+        url = reverse('detail-get-update-delete-category', args=[category.id])
 
         response = client.put(
             url, {'title': updated_category}, content_type='application/json'
@@ -30,7 +30,7 @@ class TestCategoryAPI:
         assert response.json()['title'] == updated_category
 
         response = client.delete(url)
-        assert response.status_code == 204
+        assert response.status_code == 200
         assert Category.objects.count() == 0
 
 
@@ -39,7 +39,7 @@ class TestQuizAPI:
     def test_create_and_list_quizzes(self, client):
         title = 'Python'
         description = 'PythonDesc'
-        url = reverse('quiz-list')
+        url = reverse('create-and-list-quiz')
         response = client.post(
             url,
             {'title': title, 'description': description},
@@ -56,7 +56,7 @@ class TestQuizAPI:
         updated_title = 'SecondTitle'
         updated_description = 'SecondDesc'
         quiz = Quiz.objects.create(title='FirstTitle', description='FirstDesc')
-        url = reverse('quiz-detail', args=[quiz.id])
+        url = reverse('detail-get-update-delete-quiz', args=[quiz.id])
 
         response = client.put(
             url,
@@ -71,7 +71,7 @@ class TestQuizAPI:
         assert response.json()['description'] == updated_description
 
         response = client.delete(url)
-        assert response.status_code == 204
+        assert response.status_code == 200
         assert Quiz.objects.count() == 0
 
     def test_random_question(self, client):
@@ -95,7 +95,7 @@ class TestQuizAPI:
         Quiz.objects.create(title='Test 1', description='1')
         Quiz.objects.create(title='Test 2', description='2')
         Quiz.objects.create(title='Base', description='WOW')
-        url = reverse('quiz-by-title', kwargs={'title': 'Test'})
+        url = reverse('get-by-title-quiz', kwargs={'title': 'Test'})
         response = client.get(url)
         assert response.status_code == 200
         results = response.json()
@@ -113,7 +113,7 @@ class TestQuestionAPI:
         )
 
     def test_create_and_list_questions(self, client):
-        url = reverse('question-list')
+        url = reverse('create-and-list-question')
         text = '2+2?'
         response = client.post(
             url,
@@ -145,7 +145,7 @@ class TestQuestionAPI:
             correct_answer=1,
             difficulty='easy',
         )
-        url = reverse('question-detail', args=[question.id])
+        url = reverse('detail-get-update-delete-question', args=[question.id])
 
         response = client.put(
             url,
@@ -164,7 +164,7 @@ class TestQuestionAPI:
         assert response.json()['options'] == updated_options
 
         response = client.delete(url)
-        assert response.status_code == 204
+        assert response.status_code == 200
         assert Question.objects.count() == 0
 
     def test_by_text(self, client):
@@ -184,9 +184,12 @@ class TestQuestionAPI:
             correct_answer=0,
             difficulty='easy',
         )
-        url = reverse('question-by-text', kwargs={'query': '5+5'})
+        url = reverse('get-by-text-question', kwargs={'text': '5+5'})
         response = client.get(url)
         assert response.status_code == 200
+        results = response.json()
+        assert len(results) == 1
+        assert results[0]['text'] == '5+5?'
 
     def test_check_answer(self, client):
         question = Question.objects.create(
@@ -197,7 +200,7 @@ class TestQuestionAPI:
             correct_answer=2,
             difficulty='easy',
         )
-        url = reverse('question-check', args=[question.id])
+        url = reverse('check-answer', args=[question.id])
         response = client.post(
             url,
             {'user_answer': '9'},
@@ -205,6 +208,7 @@ class TestQuestionAPI:
         )
         assert response.status_code == 200
         assert response.json()['answer_correct'] is True
+
         response = client.post(
             url,
             {'user_answer': '4'},
@@ -212,6 +216,7 @@ class TestQuestionAPI:
         )
         assert response.status_code == 200
         assert response.json()['answer_correct'] is False
+
         response = client.post(
             url,
             {'user_answer': '3'},
